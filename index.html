@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html class="light" lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>CASTER BIZ accounting Prototype (Extended)</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+        rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d7ff2",
+                        "primary-dark": "#0b6bcb",
+                        "accent": "#f97316",
+                        "background-light": "#f0f2f5",
+                        "background-dark": "#101922",
+                        "surface": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Noto Sans JP", "sans-serif"],
+                        "body": ["Inter", "Noto Sans JP", "sans-serif"],
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                    boxShadow: {
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+                        'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .chip-base {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .tag-gray {
+            background-color: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .tag-blue {
+            background-color: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .tag-red {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        .tag-purple {
+            background-color: #f3e8ff;
+            color: #9333ea;
+        }
+
+        .tag-orange {
+            background-color: #ffedd5;
+            color: #ea580c;
+        }
+
+        /* Edit Mode Styles */
+        .editable-input {
+            border: 1px dashed #cbd5e1;
+            background-color: #f8fafc;
+            padding: 2px 4px;
+            border-radius: 4px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .editable-input:focus {
+            outline: none;
+            border-color: #0d7ff2;
+            background-color: white;
+            box-shadow: 0 0 0 2px rgba(13, 127, 242, 0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white">
+    <div id="root"></div>
+
+    <!-- Scripts -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        // Global Error Handler
+        window.addEventListener('error', function (event) {
+            var root = document.getElementById('root');
+            var msg = event.message || "Unknown Error";
+            if (msg.indexOf("Script error") > -1) {
+                msg += " (CORS restriction prevented details. Check console network tab or script headers)";
+            }
+            // Try to append to root, or body if root is not ready
+            var el = root || document.body;
+            if (el) {
+                el.innerHTML = '<div style="color:red; font-family:sans-serif; padding:20px; border:1px solid red; background:#fee;">' +
+                    '<h3>⚠️ Runtime Error</h3>' +
+                    '<p>' + msg + '</p>' +
+                    '<p>Line: ' + (event.lineno || '?') + ', Col: ' + (event.colno || '?') + '</p>' +
+                    '</div>';
+            }
+            console.error(event.error);
+        });
+        // Console error trap for Babel compilation errors
+        var originalConsoleError = console.error;
+        console.error = function () {
+            var args = Array.from(arguments);
+            originalConsoleError.apply(console, args);
+            var root = document.getElementById('root');
+            if (root && root.innerHTML === '' && args[0] && args[0].toString().includes("Babel")) {
+                root.innerHTML = '<div style="color:blue; font-family:sans-serif; padding:20px; border:1px solid blue; background:#eef;">' +
+                    '<h3>⚠️ Compile Error</h3>' +
+                    '<p>Please check the console (F12) for details.</p>' +
+                    '<pre style="white-space:pre-wrap;">' + args.join(' ') + '</pre>' +
+                    '</div>';
+            }
+        };
+    </script>
+
+    <script type="text/babel" data-presets="env,react">
+        console.log("Checking Globals:", { React: !!window.React, ReactDOM: !!window.ReactDOM, ReactRouterDOM: !!window.ReactRouterDOM });
+
+        if (!window.React || !window.ReactDOM || !window.ReactRouterDOM) {
+            throw new Error("One or more libraries failed to load. React: " + !!window.React + ", Router: " + !!window.ReactRouterDOM);
+        }
+
+        const { useState, useEffect, useContext, createContext, useMemo } = React;
+        const { createRoot } = ReactDOM;
+        const { HashRouter, Routes, Route, Link, useNavigate, useParams, Navigate, useLocation } = ReactRouterDOM;
+
+        // --- Data & Constants ---
+        const ADMIN_PASSWORD = "caster-admin";
+
+        // === マスタデータ定数 ===
+        const AVAILABLE_ICONS = [
+            'person', 'group', 'group_off', 'keyboard_off', 'person_off',
+            'gavel', 'timer', 'payments', 'check_circle', 'calendar_month',
+            'rocket_launch', 'sentiment_satisfied', 'cloud_upload', 'folder', 'description'
+        ];
+
+        const INITIAL_MASTERS = {
+            issues: [
+                { id: 'issue-1', label: 'リソース不足', icon: 'group_off', color: 'blue' },
+                { id: 'issue-2', label: '手入力ミス', icon: 'keyboard_off', color: 'red' },
+                { id: 'issue-3', label: '属人化', icon: 'person_off', color: 'purple' },
+                { id: 'issue-4', label: '法令対応', icon: 'gavel', color: 'yellow' },
+                { id: 'issue-5', label: '月次早期化', icon: 'timer', color: 'teal' },
+            ],
+            outcomes: [
+                { id: 'outcome-1', label: 'コスト30%以上削減', icon: 'payments' },
+                { id: 'outcome-2', label: '人的ミス90%以上削減', icon: 'check_circle' },
+                { id: 'outcome-3', label: '月次5日以上短縮', icon: 'calendar_month' },
+                { id: 'outcome-4', label: 'コア業務時間 +20h/月', icon: 'rocket_launch' },
+                { id: 'outcome-5', label: '離職率改善', icon: 'sentiment_satisfied' },
+            ],
+            industries: ['IT・通信', '製造業', '小売・流通', '不動産', 'サービス業'],
+            tasks: ['請求書処理', '給与計算', '経費精算', '記帳代行', '月次決算'],
+            tools: ['freee', 'MoneyForward', 'SAP', '弥生会計', 'SmartHR'],
+            commTools: ['Slack', 'Chatwork', 'Teams', 'メール'],
+            phases: ['未上場', '上場済', 'N-2', 'N-1', 'IPO準備中'],
+        };
+
+        const INITIAL_WORKFLOWS = [
+            {
+                id: "wf-001",
+                caseId: "0000",
+                taskName: "請求書処理",
+                title: "経理DXプロジェクト",
+                kpis: {
+                    totalDaysBefore: "15日", totalDaysAfter: "8日",
+                    workHours: "8時間", avgCount: "100件",
+                    cost: "-30%", fiscalMonth: "3月"
+                },
+                steps: [
+                    {
+                        id: 1, title: "請求書受領", role: "お客様", icon: "person", iconColor: "bg-orange-500",
+                        task: "お客様にてGoogle Driveに格納", taskIcon: "cloud_upload", time: "1営業日",
+                        problem: "", solution: "",
+                        items: ["受領・スキャン\n郵便物を受け取り、スキャナでPDF化します。", "フォルダ格納\nGoogle Driveの所定フォルダへアップロードします。", "受領連絡\nチャットツールで受領完了の連絡をします。"]
+                    },
+                    {
+                        id: 2, title: "手作業による分類・仕訳", role: "弊社", icon: "rule_folder", iconColor: "bg-primary",
+                        task: "弊社システムにて自動処理", taskIcon: "terminal", time: "3営業日",
+                        problem: "", solution: "",
+                        items: ["データ取り込み\n請求書データを会計システムへインポートします。", "AI自動仕訳\nAIが内容を解析し、仕訳候補を提案します。", "目視確認\n提案内容に誤りがないか担当者が確認します。"]
+                    },
+                    {
+                        id: 3, title: "データ入力・チェック", role: "弊社", icon: "edit_document", iconColor: "bg-primary",
+                        task: "Chatworkにて確認依頼", taskIcon: "mail", time: "2営業日",
+                        problem: "紙の請求書からの手入力によるミスが多く、目視でのダブルチェックに多くの時間がかかっていました。特に月末の繁忙期には、担当者の残業が常態化していました。",
+                        solution: "AI-OCRとRPAを組み合わせた自動化システムを導入。請求書をスキャンするだけでデータが自動入力され、特定のルールに基づきチェックまで完了します。これにより、ヒューマンエラーを98%削減し、作業時間を従来の1/4に短縮しました。",
+                        items: [
+                            "AI-OCRによる自動読取\n紙の請求書をスキャンし、AI-OCRが自動でテキストデータを抽出します。",
+                            "RPAによるシステム入力\n抽出されたデータをRPAが会計システムへ自動入力。手入力作業を撤廃します。",
+                            "例外処理の通知\n読み取りエラーやイレギュラーな項目が発生した場合のみ、担当者へ通知します。"
+                        ]
+                    },
+                    {
+                        id: 4, title: "承認申請", role: "弊社", icon: "thumb_up", iconColor: "bg-primary",
+                        task: "お客様にて承認", taskIcon: "approval", time: "1営業日",
+                        problem: "", solution: "",
+                        items: ["申請データ作成\n入力データを元に承認申請を作成します。", "ルート自動判定\n金額や部門に応じて承認ルートが自動設定されます。", "承認実行\n通知を受け取った承認者が内容を確認し承認します。"]
+                    },
+                    {
+                        id: 5, title: "支払い処理", role: "お客様", icon: "payments", iconColor: "bg-orange-500",
+                        task: "会計システムにて処理", taskIcon: "account_balance", time: "1営業日",
+                        problem: "", solution: "",
+                        items: ["FBデータ出力\n会計システムから振込用データを出力します。", "IB取込\nインターネットバンキングにデータを取り込みます。", "振込予約\n内容を確認し、振込指定日に予約します。"]
+                    },
+                    {
+                        id: 6, title: "ファイリング", role: "弊社", icon: "inventory_2", iconColor: "bg-primary",
+                        task: "電子帳簿保存法に対応した形式で保管", taskIcon: "description", time: null,
+                        problem: "", solution: "",
+                        items: ["属性付与\n取引日付、金額、取引先名をデータに付与します。", "タイムスタンプ\n改ざん防止のタイムスタンプを付与します。", "長期保存\n要件を満たした状態でクラウド上に保存します。"]
+                    }
+                ]
+            }
+        ];
+
+        const INITIAL_CASES = [
+            {
+                id: "0000",
+                title: "製造業",
+                industry: "製造",
+                employeeCount: "500名",
+                tools: ["freee", "マネーフォワード"],
+                commTool: "Slack",
+                service: "経理BPO",
+                fiscalMonth: "3月",
+                startMonth: "2023年4月",
+                contractHours: "30時間",
+                workflowId: "wf-001",
+                tasks: ["請求書処理"],
+                challenges: ["残業月40h超", "離職率高止まり", "月末業務集中"],
+                resultsBullets: ["残業ほぼゼロ", "工数40%削減"],
+                metricsCards: [
+                    { label: "月次処理時間", value: "40%", suffix: "削減" },
+                    { label: "人為的ミス", value: "95%", suffix: "削減" },
+                    { label: "コスト", value: "30%", suffix: "削減" }
+                ],
+                tags: ["IT業界", "コスト削減", "業務効率化"],
+                // === 新規追加フィールド ===
+                issueIds: ["issue-1", "issue-2"],
+                outcomeIds: ["outcome-1", "outcome-2"],
+                phase: "上場済",
+                commTool: "Slack",
+                taskWorkflowMap: { "請求書処理": "wf-001", "支払処理": "wf-001", "経費精算": "wf-001" }
+            },
+            {
+                id: "002",
+                title: "IT・通信",
+                industry: "IT・通信",
+                employeeCount: "300名",
+                tools: ["SmartHR", "Slack"],
+                service: "人事BPO",
+                fiscalMonth: "9月",
+                startMonth: "2023年10月",
+                contractHours: "20時間",
+                workflowId: "wf-001", // Sharing same workflow for demo
+                tasks: ["給与計算", "労務管理"],
+                challenges: ["リソース枯渇", "面接調整忙殺"],
+                resultsBullets: ["ノンコア80%外注化", "採用数200%増"],
+                metricsCards: [
+                    { label: "採用コスト", value: "20%", suffix: "削減" },
+                    { label: "面接実施数", value: "2.5倍", suffix: "アップ" },
+                    { label: "離職率", value: "5%", suffix: "改善" }
+                ],
+                tags: ["採用強化", "リソース最適化"],
+                issueIds: ["issue-1"],
+                outcomeIds: ["outcome-4", "outcome-5"],
+                phase: "未上場",
+                commTool: "Slack",
+                taskWorkflowMap: { "給与計算": "wf-001", "労務管理": "wf-001" }
+            },
+            {
+                id: "003",
+                title: "小売・流通",
+                industry: "小売",
+                employeeCount: "5,000名以上",
+                tools: ["独自システム"],
+                service: "コールセンター",
+                fiscalMonth: "2月",
+                startMonth: "2022年4月",
+                contractHours: "100時間",
+                workflowId: "wf-001",
+                tasks: ["問い合わせ対応", "事務代行"],
+                challenges: ["応答率低下", "教育コスト増", "問い合わせ急増"],
+                resultsBullets: ["応答率98%維持", "CSスコア15pt向上"],
+                metricsCards: [
+                    { label: "受電率", value: "98%", suffix: "維持" },
+                    { label: "教育工数", value: "60%", suffix: "削減" },
+                    { label: "CSスコア", value: "15pt", suffix: "向上" }
+                ],
+                tags: ["CS向上", "教育コスト削減"],
+                issueIds: ["issue-3"],
+                outcomeIds: ["outcome-2", "outcome-5"],
+                phase: "上場済",
+                commTool: "Teams",
+                taskWorkflowMap: { "問い合わせ対応": "wf-001", "事務代行": "wf-001" }
+            }
+        ];
+
+        // --- Contexts ---
+        const AppContext = createContext();
+        const ToastContext = createContext();
+
+        // === Toast Provider ===
+        const ToastProvider = ({ children }) => {
+            const [toast, setToast] = useState(null);
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
+            return (
+                <ToastContext.Provider value={{ showToast }}>
+                    {children}
+                    {toast && (
+                        <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-lg shadow-lg text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>
+                            {toast.message}
+                        </div>
+                    )}
+                </ToastContext.Provider>
+            );
+        };
+        const useToast = () => useContext(ToastContext);
+
+        const AppProvider = ({ children }) => {
+            // Load from LS or init
+            const [cases, setCases] = useState(() => {
+                const saved = localStorage.getItem('app_cases');
+                return saved ? JSON.parse(saved) : INITIAL_CASES;
+            });
+            const [workflows, setWorkflows] = useState(() => {
+                const saved = localStorage.getItem('app_workflows');
+                return saved ? JSON.parse(saved) : INITIAL_WORKFLOWS;
+            });
+            // === マスタデータ管理 ===
+            const [masters, setMasters] = useState(() => {
+                const saved = localStorage.getItem('app_masters');
+                return saved ? JSON.parse(saved) : INITIAL_MASTERS;
+            });
+            // === 検索フィルター状態 ===
+            const [filters, setFilters] = useState({
+                selectedIssues: [],
+                selectedOutcomes: [],
+                industry: 'すべて',
+                task: 'すべて',
+                tool: 'すべて',
+            });
+
+            // Persist
+            useEffect(() => { localStorage.setItem('app_cases', JSON.stringify(cases)); }, [cases]);
+            useEffect(() => { localStorage.setItem('app_workflows', JSON.stringify(workflows)); }, [workflows]);
+            useEffect(() => { localStorage.setItem('app_masters', JSON.stringify(masters)); }, [masters]);
+
+            // Edit State
+            const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem('isAdmin') === 'true');
+            const [isEditMode, setIsEditMode] = useState(false);
+
+            useEffect(() => {
+                sessionStorage.setItem('isAdmin', isAdmin);
+                if (!isAdmin) setIsEditMode(false);
+            }, [isAdmin]);
+
+            // === フィルタリングロジック ===
+            const filteredCases = useMemo(() => {
+                return cases.filter(c => {
+                    // 課題フィルター
+                    if (filters.selectedIssues.length > 0) {
+                        const caseIssues = c.issueIds || [];
+                        if (!filters.selectedIssues.some(id => caseIssues.includes(id))) return false;
+                    }
+                    // 成果フィルター
+                    if (filters.selectedOutcomes.length > 0) {
+                        const caseOutcomes = c.outcomeIds || [];
+                        if (!filters.selectedOutcomes.some(id => caseOutcomes.includes(id))) return false;
+                    }
+                    // 業種フィルター
+                    if (filters.industry !== 'すべて' && c.industry !== filters.industry) return false;
+                    // タスクフィルター
+                    if (filters.task !== 'すべて' && !(c.tasks || []).includes(filters.task)) return false;
+                    // ツールフィルター
+                    if (filters.tool !== 'すべて' && !(c.tools || []).includes(filters.tool)) return false;
+                    return true;
+                });
+            }, [cases, filters]);
+
+            // === フィルター操作関数 ===
+            const toggleIssue = (id) => setFilters(prev => ({
+                ...prev,
+                selectedIssues: prev.selectedIssues.includes(id)
+                    ? prev.selectedIssues.filter(i => i !== id)
+                    : [...prev.selectedIssues, id]
+            }));
+            const toggleOutcome = (id) => setFilters(prev => ({
+                ...prev,
+                selectedOutcomes: prev.selectedOutcomes.includes(id)
+                    ? prev.selectedOutcomes.filter(i => i !== id)
+                    : [...prev.selectedOutcomes, id]
+            }));
+            const setFilterValue = (key, value) => setFilters(prev => ({ ...prev, [key]: value }));
+            const clearFilter = (key, value) => {
+                if (key === 'selectedIssues' || key === 'selectedOutcomes') {
+                    setFilters(prev => ({ ...prev, [key]: prev[key].filter(v => v !== value) }));
+                } else {
+                    setFilters(prev => ({ ...prev, [key]: 'すべて' }));
+                }
+            };
+            const clearAllFilters = () => setFilters({
+                selectedIssues: [], selectedOutcomes: [],
+                industry: 'すべて', task: 'すべて', tool: 'すべて'
+            });
+
+            // === マスタ更新関数 ===
+            const updateMasters = (newMasters) => setMasters(newMasters);
+            const addMasterItem = (category, item) => {
+                setMasters(prev => ({ ...prev, [category]: [...(prev[category] || []), item] }));
+            };
+            const updateMasterItem = (category, id, updates) => {
+                setMasters(prev => ({
+                    ...prev,
+                    [category]: prev[category].map(item =>
+                        (typeof item === 'object' && item.id === id) ? { ...item, ...updates } : item
+                    )
+                }));
+            };
+            const deleteMasterItem = (category, id) => {
+                setMasters(prev => ({
+                    ...prev,
+                    [category]: prev[category].filter(item =>
+                        typeof item === 'object' ? item.id !== id : item !== id
+                    )
+                }));
+            };
+
+            // Actions
+            const updateCase = (updatedCase) => {
+                setCases(prev => prev.map(c => c.id === updatedCase.id ? updatedCase : c));
+            };
+            const addCase = (newCase) => setCases(prev => [...prev, newCase]);
+            const deleteCase = (id) => setCases(prev => prev.filter(c => c.id !== id));
+
+            const updateWorkflow = (updatedWf) => {
+                setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+            };
+
+            const importCSV = (csvText) => {
+                try {
+                    const lines = csvText.trim().split('\n');
+                    const newCases = [];
+                    let count = 0;
+                    lines.forEach(line => {
+                        const cols = line.split(',');
+                        if (cols.length < 3) return;
+                        const [id, title, industry, emp, tools, tasks, wfId] = cols;
+                        if (!id) return;
+                        const caseObj = {
+                            id: id.trim(),
+                            title: title?.trim() || "No Title",
+                            industry: industry?.trim() || "Unknown",
+                            employeeCount: emp?.trim() || "-",
+                            tools: tools ? tools.split('|') : [],
+                            service: "Imported",
+                            fiscalMonth: "3月",
+                            startMonth: "2024年1月",
+                            contractHours: "-",
+                            workflowId: wfId?.trim() || "wf-001",
+                            tasks: tasks ? tasks.split('|') : [],
+                            challenges: [],
+                            resultsBullets: [],
+                            metricsCards: [],
+                            issueIds: [],
+                            outcomeIds: [],
+                            phase: "未上場",
+                            commTool: "Slack",
+                            taskWorkflowMap: {}
+                        };
+                        newCases.push(caseObj);
+                        count++;
+                    });
+                    setCases(prev => {
+                        const next = [...prev];
+                        newCases.forEach(nc => {
+                            const idx = next.findIndex(c => c.id === nc.id);
+                            if (idx >= 0) next[idx] = { ...next[idx], ...nc };
+                            else next.push(nc);
+                        });
+                        return next;
+                    });
+                    alert(`${count}件インポートしました`);
+                } catch (e) {
+                    alert("インポートエラー: " + e.message);
+                }
+            };
+
+            return (
+                <AppContext.Provider value={{
+                    cases, workflows, masters, filters, filteredCases,
+                    isAdmin, setIsAdmin,
+                    isEditMode, setIsEditMode,
+                    updateCase, addCase, deleteCase, updateWorkflow, importCSV,
+                    toggleIssue, toggleOutcome, setFilterValue, clearFilter, clearAllFilters,
+                    updateMasters, addMasterItem, updateMasterItem, deleteMasterItem
+                }}>
+                    {children}
+                </AppContext.Provider>
+            );
+        };
+
+        const useApp = () => useContext(AppContext);
+
+        // --- Shared Components for Edit Mode ---
+        const PasswordModal = ({ onClose }) => {
+            const { setIsAdmin } = useApp();
+            const [pass, setPass] = useState("");
+
+            const submit = () => {
+                if (pass === ADMIN_PASSWORD) {
+                    setIsAdmin(true);
+                    onClose();
+                } else {
+                    alert("パスワードが違います");
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl w-80">
+                        <h3 className="text-lg font-bold mb-4 dark:text-white">管理者認証</h3>
+                        <input className="w-full border p-2 rounded mb-4 dark:bg-gray-700 dark:text-white"
+                            type="password" placeholder="Password"
+                            value={pass} onChange={e => setPass(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && submit()}
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button onClick={onClose} className="px-3 py-1 text-gray-500">キャンセル</button>
+                            <button onClick={submit} className="px-3 py-1 bg-primary text-white rounded">認証</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CSVModal = ({ onClose }) => {
+            const { importCSV } = useApp();
+            const [text, setText] = useState("");
+
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl w-[600px] max-w-full m-4">
+                        <h3 className="text-lg font-bold mb-2 dark:text-white">CSVインポート</h3>
+                        <p className="text-xs text-gray-500 mb-4">フォーマット: id,title,industry,employeeCount,tools(パイプ区切り),tasks(パイプ区切り),workflowId</p>
+                        <textarea className="w-full h-40 border p-2 rounded mb-4 text-xs font-mono dark:bg-gray-700 dark:text-white"
+                            placeholder={"004,不動産,不動産業,100名,freee|Slack,記帳代行,wf-001"}
+                            value={text} onChange={e => setText(e.target.value)}
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button onClick={onClose} className="px-3 py-1 text-gray-500">閉じる</button>
+                            <button onClick={() => { importCSV(text); onClose(); }} className="px-3 py-1 bg-primary text-white rounded">インポート実行</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const AdminBar = () => {
+            const { isAdmin, setIsAdmin, isEditMode, setIsEditMode } = useApp();
+            const [showLogin, setShowLogin] = useState(false);
+            const [showCSV, setShowCSV] = useState(false);
+
+            if (!isAdmin) {
+                return (
+                    <>
+                        <button onClick={() => setShowLogin(true)}
+                            className="fixed bottom-4 right-4 z-50 p-3 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700 opacity-50 hover:opacity-100 transition-opacity">
+                            <span className="material-symbols-outlined">lock</span>
+                        </button>
+                        {showLogin && <PasswordModal onClose={() => setShowLogin(false)} />}
+                    </>
+                );
+            }
+
+            return (
+                <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 items-end">
+                    <div className="bg-gray-900 text-white p-2 rounded-lg shadow-lg flex items-center gap-3 pr-4 animate-fade-in">
+                        <button onClick={() => setIsEditMode(!isEditMode)}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${isEditMode ? 'bg-orange-500 text-white' : 'bg-gray-700 text-gray-300'}`}>
+                            <span className="material-symbols-outlined text-[18px]">{isEditMode ? 'edit' : 'visibility'}</span>
+                            {isEditMode ? '編集モードON' : '閲覧モード'}
+                        </button>
+
+                        {isEditMode && (
+                            <button onClick={() => setShowCSV(true)}
+                                className="flex items-center gap-2 px-2 py-1.5 text-xs text-gray-300 hover:text-white">
+                                <span className="material-symbols-outlined text-[16px]">upload_file</span> CSV
+                            </button>
+                        )}
+
+                        <button onClick={() => { setIsAdmin(false); setIsEditMode(false); }}
+                            className="p-1 hover:bg-gray-700 rounded-full text-gray-400">
+                            <span className="material-symbols-outlined text-[18px]">logout</span>
+                        </button>
+                    </div>
+                    {showCSV && <CSVModal onClose={() => setShowCSV(false)} />}
+                </div>
+            );
+        };
+
+        const EditableText = ({ value, onChange, className = "", tag = "span", placeholder = "" }) => {
+            const { isEditMode } = useApp();
+            if (!isEditMode) return React.createElement(tag, { className }, value || placeholder);
+
+            return (
+                <input
+                    type="text"
+                    value={value || ""}
+                    onChange={e => onChange(e.target.value)}
+                    className={`editable-input ${className} text-black`}
+                    placeholder={placeholder}
+                    onClick={e => e.stopPropagation()}
+                />
+            );
+        };
+
+        const EditableArea = ({ value, onChange, className = "" }) => {
+            const { isEditMode } = useApp();
+            if (!isEditMode) return <p className={className}>{value}</p>;
+
+            return (
+                <textarea
+                    value={value || ""}
+                    onChange={e => onChange(e.target.value)}
+                    className={`editable-input min-h-[80px] ${className} text-black`}
+                    onClick={e => e.stopPropagation()}
+                />
+            );
+        };
+
+        const EditableArray = ({ items, onChange, itemClass, wrapperClass, placeholder = "項目" }) => {
+            const { isEditMode } = useApp();
+
+            const handleItemChange = (idx, val) => {
+                const next = [...items];
+                next[idx] = val;
+                onChange(next);
+            };
+            const add = () => onChange([...items, ""]);
+            const del = (idx) => onChange(items.filter((_, i) => i !== idx));
+
+            if (!isEditMode) {
+                return (
+                    <div className={wrapperClass}>
+                        {items.map((item, i) => (
+                            <span key={i} className={itemClass}>{item}</span>
+                        ))}
+                    </div>
+                );
+            }
+
+            return (
+                <div className={`flex flex-wrap gap-2 ${wrapperClass}`}>
+                    {items.map((item, i) => (
+                        <div key={i} className="flex items-center gap-1">
+                            <input
+                                className="border rounded px-1 py-0.5 text-black text-xs w-24"
+                                value={item}
+                                onChange={e => handleItemChange(i, e.target.value)}
+                            />
+                            <button onClick={() => del(i)} className="text-red-500 hover:bg-red-50 rounded-full">
+                                <span className="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                        </div>
+                    ))}
+                    <button onClick={add} className="px-2 py-0.5 border border-dashed border-gray-400 text-gray-500 text-xs rounded hover:bg-gray-50">
+                        + 追加
+                    </button>
+                </div>
+            );
+        };
+
+        // --- Icons & UI Components ---
+        const Icons = {
+            Search: () => <span className="material-symbols-outlined text-[20px]">search</span>,
+            Group: () => <span className="material-symbols-outlined text-[24px]">group_off</span>,
+            Error: () => <span className="material-symbols-outlined text-[24px]">keyboard_off</span>,
+            Person: () => <span className="material-symbols-outlined text-[24px]">person_off</span>,
+            Gavel: () => <span className="material-symbols-outlined text-[24px]">gavel</span>,
+            Timer: () => <span className="material-symbols-outlined text-[24px]">timer</span>,
+            Money: () => <span className="material-symbols-outlined text-[18px]">payments</span>,
+            Check: () => <span className="material-symbols-outlined text-[18px]">check_circle</span>,
+            Calendar: () => <span className="material-symbols-outlined text-[18px]">calendar_month</span>,
+            Rocket: () => <span className="material-symbols-outlined text-[18px]">rocket_launch</span>,
+            Smile: () => <span className="material-symbols-outlined text-[18px]">sentiment_satisfied</span>
+        };
+
+        const Logo = () => (
+            <div className="flex items-center gap-2">
+                <div className="bg-blue-100 p-1.5 rounded-md text-primary">
+                    <span className="material-symbols-outlined text-[24px]">account_balance</span>
+                </div>
+                <h1 className="text-gray-800 font-bold text-lg tracking-tight">CASTER BIZ accounting</h1>
+            </div>
+        );
+
+        // === ヘッダーコンポーネント（ID検索機能付き） ===
+        const Header = () => {
+            const [searchId, setSearchId] = useState('');
+            const { cases } = useApp();
+            const navigate = useNavigate();
+            const { showToast } = useToast();
+
+            const handleSearch = () => {
+                if (!searchId.trim()) return;
+                const found = cases.find(c => c.id === searchId.trim());
+                if (found) {
+                    navigate(`/detail/${found.id}`);
+                    setSearchId('');
+                } else {
+                    showToast('該当IDが見つかりませんでした', 'error');
+                }
+            };
+
+            return (
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-50 h-[60px] flex items-center justify-between px-6 shadow-sm">
+                    <Link to="/" className="hover:opacity-80 transition-opacity"><Logo /></Link>
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5 w-[300px]">
+                        <span className="text-gray-400 text-sm">#</span>
+                        <input
+                            type="text"
+                            placeholder="ID検索"
+                            className="bg-transparent border-none outline-none text-sm w-full"
+                            value={searchId}
+                            onChange={e => setSearchId(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                        />
+                        <button
+                            onClick={handleSearch}
+                            className="bg-primary hover:bg-primary-dark text-white rounded p-1 flex items-center justify-center w-8 h-8"
+                        >
+                            <Icons.Search />
+                        </button>
+                    </div>
+                </header>
+            );
+        };
+
+        // === アイコン選択モーダル ===
+        const IconSelector = ({ selected, onSelect, onClose }) => (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={onClose}>
+                <div className="bg-white p-4 rounded-xl shadow-xl" onClick={e => e.stopPropagation()}>
+                    <h4 className="text-sm font-bold mb-3">アイコンを選択</h4>
+                    <div className="grid grid-cols-5 gap-2">
+                        {AVAILABLE_ICONS.map(icon => (
+                            <button
+                                key={icon}
+                                onClick={() => { onSelect(icon); onClose(); }}
+                                className={`w-10 h-10 rounded flex items-center justify-center border ${selected === icon ? 'bg-primary text-white border-primary' : 'border-gray-200 hover:bg-gray-50'}`}
+                            >
+                                <span className="material-symbols-outlined text-[20px]">{icon}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- Screen 1: Home Page ---
+        const HomePage = () => {
+            const navigate = useNavigate();
+            const { showToast } = useToast();
+            const {
+                masters, filters, filteredCases, isEditMode,
+                toggleIssue, toggleOutcome, setFilterValue, clearFilter, clearAllFilters,
+                addMasterItem, updateMasterItem, deleteMasterItem
+            } = useApp();
+
+            const [editingItem, setEditingItem] = useState(null);
+            const [showIconSelector, setShowIconSelector] = useState(null);
+
+            // 色のマッピング
+            const colorToClasses = {
+                blue: { bg: 'bg-blue-100', text: 'text-blue-600', hover: 'hover:bg-blue-50', selected: 'bg-blue-500 text-white' },
+                red: { bg: 'bg-red-100', text: 'text-red-600', hover: 'hover:bg-red-50', selected: 'bg-red-500 text-white' },
+                purple: { bg: 'bg-purple-100', text: 'text-purple-600', hover: 'hover:bg-purple-50', selected: 'bg-purple-500 text-white' },
+                yellow: { bg: 'bg-yellow-100', text: 'text-yellow-600', hover: 'hover:bg-yellow-50', selected: 'bg-yellow-500 text-white' },
+                teal: { bg: 'bg-teal-100', text: 'text-teal-600', hover: 'hover:bg-teal-50', selected: 'bg-teal-500 text-white' },
+            };
+
+            // 選択中の条件を取得
+            const getActiveConditions = () => {
+                const conditions = [];
+                filters.selectedIssues.forEach(id => {
+                    const item = masters.issues.find(i => i.id === id);
+                    if (item) conditions.push({ key: 'selectedIssues', value: id, label: item.label });
+                });
+                filters.selectedOutcomes.forEach(id => {
+                    const item = masters.outcomes.find(o => o.id === id);
+                    if (item) conditions.push({ key: 'selectedOutcomes', value: id, label: item.label });
+                });
+                if (filters.industry !== 'すべて') conditions.push({ key: 'industry', value: filters.industry, label: filters.industry });
+                if (filters.task !== 'すべて') conditions.push({ key: 'task', value: filters.task, label: filters.task });
+                if (filters.tool !== 'すべて') conditions.push({ key: 'tool', value: filters.tool, label: filters.tool });
+                return conditions;
+            };
+
+            const activeConditions = getActiveConditions();
+
+            // 新規タグ追加
+            const handleAddIssue = () => {
+                const newId = 'issue-' + Date.now();
+                addMasterItem('issues', { id: newId, label: '新規課題', icon: 'error', color: 'blue' });
+                showToast('課題タグを追加しました');
+            };
+            const handleAddOutcome = () => {
+                const newId = 'outcome-' + Date.now();
+                addMasterItem('outcomes', { id: newId, label: '新規成果', icon: 'check_circle' });
+                showToast('成果タグを追加しました');
+            };
+
+            return (
+                <div className="min-h-screen bg-[#F3F5F8] flex flex-col font-body pb-[80px]">
+                    <Header />
+
+                    <main className="max-w-[1000px] mx-auto w-full px-4 py-8 flex flex-col gap-6">
+                        {/* Title */}
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="bg-blue-100 p-2 rounded-lg text-primary">
+                                <span className="material-symbols-outlined text-[28px]">search</span>
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-800">事例検索ポータル</h2>
+                        </div>
+
+                        {/* Section 1: 課題から選ぶ */}
+                        <section className="bg-white rounded-xl p-6 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                                    <span className="text-blue-500 font-bold border-2 border-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span>
+                                    課題から選ぶ
+                                </h3>
+                                {isEditMode && (
+                                    <button onClick={handleAddIssue} className="text-xs bg-green-500 text-white px-2 py-1 rounded flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">add</span> 追加
+                                    </button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                {(masters.issues || []).map(issue => {
+                                    const isSelected = filters.selectedIssues.includes(issue.id);
+                                    const colors = colorToClasses[issue.color] || colorToClasses.blue;
+                                    return (
+                                        <div
+                                            key={issue.id}
+                                            onClick={() => !isEditMode && toggleIssue(issue.id)}
+                                            className={`relative rounded-lg p-4 transition-all flex flex-col gap-2 cursor-pointer border-2 ${isSelected ? 'border-primary bg-blue-50' : 'border-transparent bg-gray-50 hover:border-gray-200'}`}
+                                        >
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-white' : colors.bg + ' ' + colors.text}`}>
+                                                <span className="material-symbols-outlined text-[24px]">{issue.icon}</span>
+                                            </div>
+                                            {isEditMode ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <input
+                                                        className="text-sm font-bold border rounded px-1 text-black"
+                                                        value={issue.label}
+                                                        onChange={e => updateMasterItem('issues', issue.id, { label: e.target.value })}
+                                                        onClick={e => e.stopPropagation()}
+                                                    />
+                                                    <div className="flex gap-1 mt-1">
+                                                        <button onClick={e => { e.stopPropagation(); setShowIconSelector(issue.id); }} className="text-[10px] bg-gray-200 px-1 rounded">アイコン</button>
+                                                        <button onClick={e => { e.stopPropagation(); deleteMasterItem('issues', issue.id); showToast('削除しました'); }} className="text-[10px] text-red-500">削除</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="font-bold text-gray-800 text-sm">{issue.label}</p>
+                                            )}
+                                            {isSelected && <div className="absolute top-2 right-2 text-primary"><span className="material-symbols-outlined text-[18px]">check_circle</span></div>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {showIconSelector && <IconSelector selected={(masters.issues.find(i => i.id === showIconSelector) || {}).icon} onSelect={icon => updateMasterItem('issues', showIconSelector, { icon })} onClose={() => setShowIconSelector(null)} />}
+                        </section>
+
+                        {/* Section 2: 成果・インパクトから選ぶ */}
+                        <section className="bg-white rounded-xl p-6 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                                    <span className="text-orange-500 font-bold border-2 border-orange-500 rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span>
+                                    成果・インパクトから選ぶ
+                                </h3>
+                                {isEditMode && (
+                                    <button onClick={handleAddOutcome} className="text-xs bg-green-500 text-white px-2 py-1 rounded flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">add</span> 追加
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                                {(masters.outcomes || []).map(outcome => {
+                                    const isSelected = filters.selectedOutcomes.includes(outcome.id);
+                                    return (
+                                        <div key={outcome.id} className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => !isEditMode && toggleOutcome(outcome.id)}
+                                                className={`flex items-center gap-1.5 px-4 py-2 rounded-full border transition-colors text-sm font-medium ${isSelected ? 'border-primary bg-primary text-white' : 'border-gray-200 hover:border-primary hover:bg-blue-50 text-gray-600 bg-white'}`}
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">{outcome.icon}</span>
+                                                {isEditMode ? (
+                                                    <input
+                                                        className="bg-transparent border-none outline-none w-32 text-black"
+                                                        value={outcome.label}
+                                                        onChange={e => updateMasterItem('outcomes', outcome.id, { label: e.target.value })}
+                                                        onClick={e => e.stopPropagation()}
+                                                    />
+                                                ) : outcome.label}
+                                            </button>
+                                            {isEditMode && (
+                                                <button onClick={() => { deleteMasterItem('outcomes', outcome.id); showToast('削除しました'); }} className="text-red-500 hover:bg-red-50 rounded-full p-1">
+                                                    <span className="material-symbols-outlined text-[14px]">close</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+
+                        {/* Section 3: 基本属性で絞り込む */}
+                        <section className="bg-white rounded-xl p-6 shadow-sm">
+                            <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-4">
+                                <span className="text-gray-500 font-bold border-2 border-gray-500 rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span>
+                                基本属性で絞り込む
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-gray-700">業種 (Industry)</label>
+                                    <select
+                                        className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        value={filters.industry}
+                                        onChange={e => setFilterValue('industry', e.target.value)}
+                                    >
+                                        <option>すべて</option>
+                                        {(masters.industries || []).map(ind => <option key={ind}>{ind}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-gray-700">タスク (Task)</label>
+                                    <select
+                                        className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        value={filters.task}
+                                        onChange={e => setFilterValue('task', e.target.value)}
+                                    >
+                                        <option>すべて</option>
+                                        {(masters.tasks || []).map(t => <option key={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-bold text-gray-700">ツール (Tool)</label>
+                                    <select
+                                        className="w-full border border-gray-300 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        value={filters.tool}
+                                        onChange={e => setFilterValue('tool', e.target.value)}
+                                    >
+                                        <option>すべて</option>
+                                        {(masters.tools || []).map(t => <option key={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+
+                    {/* Bottom Action Bar */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-[70px] flex items-center justify-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40">
+                        <div className="max-w-[1000px] w-full px-4 flex items-center justify-between">
+                            <div className="flex flex-col">
+                                <p className="text-[10px] text-gray-500">現在の検索条件:</p>
+                                <div className="flex items-center gap-2 text-xs font-bold text-gray-800 flex-wrap">
+                                    {activeConditions.length === 0 ? (
+                                        <span className="text-gray-400">条件なし</span>
+                                    ) : (
+                                        activeConditions.map((cond, i) => (
+                                            <span key={i} className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded">
+                                                {cond.label}
+                                                <button onClick={() => clearFilter(cond.key, cond.value)} className="text-gray-400 hover:text-red-500">
+                                                    <span className="material-symbols-outlined text-[12px]">close</span>
+                                                </button>
+                                            </span>
+                                        ))
+                                    )}
+                                    {activeConditions.length > 0 && (
+                                        <button onClick={clearAllFilters} className="text-gray-400 text-[10px] underline ml-2">クリア</button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <span className="text-xs text-gray-500">該当件数</span>
+                                    <span className="text-2xl font-black text-gray-900 ml-2">{filteredCases.length}</span>
+                                    <span className="text-xs font-bold text-gray-900 ml-1">件</span>
+                                </div>
+                                <button onClick={() => navigate('/results')} className="bg-primary hover:bg-primary-dark text-white font-bold px-8 py-3 rounded-lg shadow-lg flex items-center gap-2 transition-transform active:scale-95">
+                                    <Icons.Search /> 検索結果を見る
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen 4: Detail Page ---
+        const CaseDetailPage = () => {
+            const { caseId } = useParams();
+            const { cases, masters, updateCase, isEditMode } = useApp();
+            const navigate = useNavigate();
+
+            // Find case
+            const caseData = cases.find(c => c.id === caseId);
+
+            if (!caseData) return <div className="p-10 font-bold text-gray-500">Case not found. <Link to="/results" className="text-primary underline">Back</Link></div>;
+
+            const handleUpdate = (field, value) => {
+                updateCase({ ...caseData, [field]: value });
+            };
+            const handleMetricUpdate = (idx, field, value) => {
+                const newMetrics = [...(caseData.metricsCards || [])];
+                newMetrics[idx] = { ...newMetrics[idx], [field]: value };
+                updateCase({ ...caseData, metricsCards: newMetrics });
+            };
+
+            // タスククリックでワークフロー遷移
+            const handleTaskClick = (task) => {
+                const wfId = (caseData.taskWorkflowMap || {})[task] || caseData.workflowId || 'wf-001';
+                navigate(`/workflow/${wfId}`);
+            };
+
+            // 課題・成果タグ取得
+            const issueTags = (caseData.issueIds || []).map(id => (masters.issues || []).find(i => i.id === id)).filter(Boolean);
+            const outcomeTags = (caseData.outcomeIds || []).map(id => (masters.outcomes || []).find(o => o.id === id)).filter(Boolean);
+
+            return (
+                <div className="min-h-screen bg-[#F3F5F8] flex flex-col font-body pb-10">
+                    <Header />
+
+                    <main className="max-w-[1000px] mx-auto w-full px-8 py-10 bg-white min-h-[800px] shadow-sm my-6 rounded-xl">
+                        {/* Header: UseID上、業種、課題・成果タグ */}
+                        <div className="mb-8">
+                            <p className="text-xs font-mono text-gray-400 font-bold tracking-wider mb-1">UseID: {caseData.id}</p>
+                            <EditableText value={caseData.industry} onChange={v => handleUpdate('industry', v)} className="text-4xl font-black text-gray-900 block mb-3" tag="h1" />
+                            <div className="flex flex-wrap gap-2">
+                                {issueTags.map((issue, i) => {
+                                    const colorMap = { blue: 'bg-blue-100 text-blue-700', red: 'bg-red-100 text-red-700', purple: 'bg-purple-100 text-purple-700', yellow: 'bg-yellow-100 text-yellow-700', teal: 'bg-teal-100 text-teal-700' };
+                                    return (
+                                        <span key={i} className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 ${colorMap[issue.color] || colorMap.blue}`}>
+                                            <span className="material-symbols-outlined text-[14px]">{issue.icon}</span> {issue.label}
+                                        </span>
+                                    );
+                                })}
+                                {outcomeTags.map((outcome, i) => (
+                                    <span key={i} className="text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 bg-orange-100 text-orange-700">
+                                        <span className="material-symbols-outlined text-[14px]">{outcome.icon}</span> {outcome.label}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Basic Info - 新レイアウト */}
+                        <section className="mb-12">
+                            <h2 className="text-xl font-bold text-primary mb-6">基本情報</h2>
+                            <div className="border-t border-primary/30">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 py-6">
+                                    {/* Left Column */}
+                                    <div className="flex flex-col gap-6">
+                                        {/* 業種 */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">業種</p>
+                                            <EditableText value={caseData.industry} onChange={v => handleUpdate('industry', v)} className="text-sm font-medium text-gray-800" />
+                                        </div>
+                                        {/* 決算月 */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">決算月</p>
+                                            <EditableText value={caseData.fiscalMonth} onChange={v => handleUpdate('fiscalMonth', v)} className="text-sm font-medium text-gray-800" />
+                                        </div>
+                                        {/* 使用ツール */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">使用ツール</p>
+                                            {isEditMode ? (
+                                                <EditableArray
+                                                    items={caseData.tools || []}
+                                                    onChange={v => handleUpdate('tools', v)}
+                                                    wrapperClass="flex flex-wrap gap-1"
+                                                    itemClass="text-sm font-medium text-gray-800 bg-gray-50 px-1 rounded"
+                                                />
+                                            ) : (
+                                                <span className="text-sm font-medium text-gray-800">{(caseData.tools || []).join('、')}</span>
+                                            )}
+                                        </div>
+                                        {/* 導入サービス */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">導入サービス</p>
+                                            <EditableText value={caseData.service} onChange={v => handleUpdate('service', v)} className="text-sm font-medium text-gray-800" />
+                                        </div>
+                                        {/* ご依頼タスク */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">お客様の依頼タスク</p>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {(caseData.tasks || []).map((task, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => handleTaskClick(task)}
+                                                        className="text-xs font-bold text-primary border border-primary/30 px-3 py-1 rounded-full hover:bg-primary hover:text-white transition-colors flex items-center gap-1"
+                                                    >
+                                                        {task} <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                                                    </button>
+                                                ))}
+                                                {isEditMode && (
+                                                    <div className="w-full mt-2">
+                                                        <EditableArray
+                                                            items={caseData.tasks || []}
+                                                            onChange={v => handleUpdate('tasks', v)}
+                                                            wrapperClass="flex flex-col gap-1"
+                                                            itemClass="text-sm border p-1 rounded"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Column */}
+                                    <div className="flex flex-col gap-6">
+                                        {/* 従業員数 */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">従業員数</p>
+                                            <EditableText value={caseData.employeeCount} onChange={v => handleUpdate('employeeCount', v)} className="text-sm font-medium text-gray-800" />
+                                        </div>
+                                        {/* 企業フェーズ */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">企業フェーズ</p>
+                                            {isEditMode ? (
+                                                <select
+                                                    className="text-sm font-medium text-gray-800 border rounded px-1"
+                                                    value={caseData.phase || '未上場'}
+                                                    onChange={e => handleUpdate('phase', e.target.value)}
+                                                >
+                                                    {(masters.phases || ['未上場', '上場済', 'N-2', 'N-1', 'IPO準備中']).map(p => <option key={p}>{p}</option>)}
+                                                </select>
+                                            ) : (
+                                                <span className="text-sm font-medium text-gray-800">{caseData.phase || '未上場'}</span>
+                                            )}
+                                        </div>
+                                        {/* 導入時期 */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">導入時期</p>
+                                            <EditableText value={caseData.startMonth} onChange={v => handleUpdate('startMonth', v)} className="text-sm font-medium text-gray-800" />
+                                        </div>
+                                        {/* ご契約時間 */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">ご契約時間</p>
+                                            <EditableText value={caseData.contractHours} onChange={v => handleUpdate('contractHours', v)} className="text-sm font-medium text-gray-800" />
+                                        </div>
+                                        {/* コミュニケーションツール */}
+                                        <div className="border-b border-gray-100 pb-2">
+                                            <p className="text-xs text-gray-400 font-bold mb-1">コミュニケーションツール</p>
+                                            {isEditMode ? (
+                                                <select
+                                                    className="text-sm font-medium text-gray-800 border rounded px-1"
+                                                    value={caseData.commTool || 'Slack'}
+                                                    onChange={e => handleUpdate('commTool', e.target.value)}
+                                                >
+                                                    {(masters.commTools || ['Slack', 'Chatwork', 'Teams', 'メール']).map(t => <option key={t}>{t}</option>)}
+                                                </select>
+                                            ) : (
+                                                <span className="text-sm font-medium text-gray-800">{caseData.commTool || 'Slack'}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Issues & Results */}
+                        <section>
+                            <h2 className="text-xl font-bold text-primary mb-6">課題と成果</h2>
+                            <div className="border-t border-primary/30 pt-6">
+                                <div className="mb-10">
+                                    <h3 className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">導入前の課題</h3>
+                                    <div className="bg-white p-2 rounded-lg">
+                                        <EditableArray
+                                            items={caseData.challenges}
+                                            onChange={v => handleUpdate('challenges', v)}
+                                            wrapperClass="flex flex-col gap-3"
+                                            itemClass="flex items-start gap-2 text-sm text-gray-600 before:content-['▶'] before:text-blue-400 before:text-[10px]"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">導入後の成果</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {caseData.metricsCards.map((m, i) => (
+                                            <div key={i} className="bg-blue-50/50 rounded-lg p-6 flex flex-col items-center justify-center gap-1 text-center border border-blue-100 mb-2">
+                                                <EditableText value={m.label} onChange={v => handleMetricUpdate(i, 'label', v)} className="text-xs font-bold text-gray-500 mb-1 block" />
+                                                <div className="flex items-baseline justify-center gap-1 w-full">
+                                                    <EditableText value={m.value} onChange={v => handleMetricUpdate(i, 'value', v)} className="text-3xl font-black text-accent" />
+                                                    <EditableText value={m.suffix} onChange={v => handleMetricUpdate(i, 'suffix', v)} className="text-sm font-bold text-accent" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-8 flex flex-col gap-3">
+                                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                                            <span className="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                                            コア業務への集中と生産性向上を実現
+                                        </div>
+                                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                                            <span className="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                                            業務プロセスの標準化と可視化が進行
+                                        </div>
+                                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                                            <span className="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+                                            柔軟なリソース調整により繁忙期の業務にも対応可能に
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+
+                    </main>
+                </div>
+            );
+        };
+
+        // --- Screen 2: Workflow Page (Refactored) ---
+        const WorkflowPage = () => {
+            const { workflowId } = useParams();
+            const { workflows, updateWorkflow, isEditMode } = useApp();
+            const { showToast } = useToast();
+            const [activeStep, setActiveStep] = useState(null);
+            const [localIconSelector, setLocalIconSelector] = useState({ isOpen: false, onSelect: null });
+
+            const workflow = useMemo(() => workflows.find(w => w.id === workflowId) || workflows[0], [workflows, workflowId]);
+
+            useEffect(() => {
+                if (workflow && workflow.steps.length > 0 && activeStep === null) {
+                    setActiveStep(workflow.steps[0].id);
+                }
+            }, [workflow, activeStep]);
+
+            if (!workflow) return <div>Workflow Not Found</div>;
+
+            // --- Normalization Logic ---
+            const normalizeStepData = (step, index) => {
+                if (!step) return null;
+                // split items to support "Title\nDesc" format if needed, but for now just pass through
+                return {
+                    original: step,
+                    stepNumber: index + 1,
+                    id: step.id,
+                    title: step.title || `Step ${index + 1}`,
+                    role: step.role || '弊社', // Default role
+                    owner: step.role === 'お客様' ? 'client' : 'caster',
+                    icon: step.icon || 'task',
+                    issue: step.problem || '', // Map 'problem' to 'issue'
+                    solution: step.solution || '',
+                    procedures: Array.isArray(step.items) ? step.items : [],
+                    task: step.task || '',
+                    taskIcon: step.taskIcon || ''
+                };
+            };
+
+            const activeStepObj = workflow.steps.find(s => s.id === activeStep);
+            const activeStepIndex = workflow.steps.findIndex(s => s.id === activeStep);
+            const activeStepData = normalizeStepData(activeStepObj, activeStepIndex);
+
+            // --- Handlers ---
+            const handleStepUpdate = (originalField, val) => {
+                if (activeStepIndex === -1) return;
+                const newSteps = [...workflow.steps];
+                newSteps[activeStepIndex] = { ...newSteps[activeStepIndex], [originalField]: val };
+                updateWorkflow({ ...workflow, steps: newSteps });
+            };
+
+            const handleKPIUpdate = (key, val) => {
+                updateWorkflow({ ...workflow, kpis: { ...workflow.kpis, [key]: val } });
+                showToast('保存しました');
+            };
+
+            const addStep = () => {
+                const newId = String(workflow.steps.length + 1).padStart(2, '0');
+                const newStep = {
+                    id: newId,
+                    title: "新規ステップ",
+                    role: "弊社",
+                    icon: "task",
+                    items: ["手順を入力してください"],
+                    problem: "",
+                    solution: ""
+                };
+                updateWorkflow({ ...workflow, steps: [...workflow.steps, newStep] });
+                setActiveStep(newId);
+                showToast('ステップを追加しました');
+            };
+
+            const deleteStep = (e, stepId) => {
+                e.stopPropagation();
+                if (!confirm('このステップを削除しますか？')) return;
+                const newSteps = workflow.steps.filter(s => s.id !== stepId);
+                updateWorkflow({ ...workflow, steps: newSteps });
+                if (activeStep === stepId && newSteps.length > 0) setActiveStep(newSteps[0].id);
+                showToast('ステップを削除しました');
+            };
+
+            const updateProcedure = (idx, val) => {
+                const newItems = [...activeStepData.procedures];
+                newItems[idx] = val;
+                handleStepUpdate('items', newItems);
+            };
+
+            const addProcedure = () => {
+                const newItems = [...activeStepData.procedures, "新しい手順"];
+                handleStepUpdate('items', newItems);
+            };
+
+            const deleteProcedure = (idx) => {
+                const newItems = activeStepData.procedures.filter((_, i) => i !== idx);
+                handleStepUpdate('items', newItems);
+            };
+
+            return (
+                <div className="min-h-screen bg-[#F3F5F8] flex flex-col font-body pb-10">
+                    <Header />
+
+                    <main className="max-w-[1200px] mx-auto w-full px-8 py-10 flex flex-col gap-8">
+                        {/* Title Section */}
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Link to={`/detail/${workflow.caseId || '001'}`} className="text-gray-400 text-xs font-bold hover:text-primary transition-colors flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">arrow_back</span> 事例詳細に戻る
+                                </Link>
+                            </div>
+                            <EditableText value={workflow.title} className="text-3xl font-black text-gray-900 leading-normal" onChange={v => { updateWorkflow({ ...workflow, title: v }); showToast('保存しました'); }} />
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                            {/* Task Name with Fallback */}
+                            <h2 className="text-xl font-bold text-gray-800">{workflow.taskName || '請求書処理'}</h2>
+
+                            {/* KPI Banner */}
+                            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex flex-wrap items-center justify-between gap-6">
+                                <div className="flex flex-col">
+                                    <p className="text-[10px] text-gray-400 font-bold mb-1">総所要日数</p>
+                                    <EditableText value={workflow.kpis.totalDaysAfter} className="text-3xl text-primary font-black ml-1" onChange={v => handleKPIUpdate('totalDaysAfter', v)} />
+                                </div>
+                                <div className="w-[1px] h-10 bg-gray-100"></div>
+                                <div className="flex flex-col">
+                                    <p className="text-[10px] text-gray-400 font-bold mb-1">作業時間</p>
+                                    <EditableText value={workflow.kpis.workHours} className="text-3xl text-primary font-black ml-1" onChange={v => handleKPIUpdate('workHours', v)} />
+                                </div>
+                                <div className="w-[1px] h-10 bg-gray-100"></div>
+                                <div className="flex flex-col">
+                                    <p className="text-[10px] text-gray-400 font-bold mb-1">平均処理件数</p>
+                                    <EditableText value={workflow.kpis.avgCount} className="text-3xl text-primary font-black ml-1" onChange={v => handleKPIUpdate('avgCount', v)} />
+                                </div>
+                                <div className="w-[1px] h-10 bg-gray-100"></div>
+                                <div className="flex flex-col">
+                                    <p className="text-[10px] text-gray-400 font-bold mb-1">コスト</p>
+                                    <EditableText value={workflow.kpis.cost} className="text-3xl text-primary font-black ml-1" onChange={v => handleKPIUpdate('cost', v)} />
+                                </div>
+                                <div className="w-[1px] h-10 bg-gray-100"></div>
+                                <div className="flex flex-col">
+                                    <p className="text-[10px] text-gray-400 font-bold mb-1">決算月</p>
+                                    <EditableText value={workflow.kpis.fiscalMonth} className="text-3xl text-primary font-black ml-1" onChange={v => handleKPIUpdate('fiscalMonth', v)} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Main Layout 6:4 */}
+                        <div className="grid grid-cols-1 lg:grid-cols-[6fr_4fr] gap-6 items-start">
+
+                            {/* Left Column: Flow Steps */}
+                            <div className="bg-white rounded-xl p-6 shadow-sm min-h-[600px] relative">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-lg font-bold text-gray-800">業務の流れ</h2>
+                                    {isEditMode && (
+                                        <button onClick={addStep} className="text-xs font-bold bg-green-50 text-green-600 px-3 py-1 rounded hover:bg-green-100 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">add</span>ステップ追加
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="relative pl-4 space-y-0">
+                                    <div className="absolute left-[27px] top-4 bottom-4 w-[2px] bg-gray-100 z-0"></div>
+                                    {workflow.steps.map((step, i) => {
+                                        const isActive = step.id === activeStep;
+                                        const stepRole = step.role || '弊社';
+                                        return (
+                                            <div key={step.id}
+                                                onClick={() => setActiveStep(step.id)}
+                                                className={`relative z-10 flex gap-4 p-3 rounded-lg cursor-pointer transition-all ${isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${isActive ? (stepRole === 'お客様' ? 'bg-orange-500 border-orange-500' : 'bg-primary border-primary') + ' text-white' : 'bg-white border-gray-200 ' + (stepRole === 'お客様' ? 'text-orange-400' : 'text-blue-400')}`}>
+                                                    <span className="material-symbols-outlined text-[20px]">{step.icon || 'task'}</span>
+                                                </div>
+                                                <div className="flex flex-col pt-1 flex-1">
+                                                    <p className={`text-sm font-bold ${isActive ? 'text-primary' : 'text-gray-700'}`}>{step.title}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-[10px] text-gray-400">{stepRole}</p>
+                                                        {step.task && (
+                                                            <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                                                                <span className="material-symbols-outlined text-[12px]">{step.taskIcon || 'schedule'}</span>
+                                                                {step.task}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {isEditMode && (
+                                                    <button onClick={(e) => deleteStep(e, step.id)} className="text-gray-300 hover:text-red-500 p-1 self-start z-20">
+                                                        <span className="material-symbols-outlined text-[16px]">close</span>
+                                                    </button>
+                                                )}
+                                                {isActive && <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary rounded-l-lg"></div>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Right Column: Step Details */}
+                            <div className="flex flex-col gap-6 sticky top-24">
+                                {!activeStepData ? (
+                                    <div className="bg-white rounded-xl p-8 shadow-sm flex items-center justify-center h-[200px] text-gray-400 font-bold">
+                                        ステップを選択してください
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Issues & Solutions Card */}
+                                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                                            <div className="mb-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="text-xs font-bold text-accent uppercase tracking-wider mb-1">STEP {activeStepData.stepNumber}</p>
+                                                        <EditableText value={activeStepData.title} className="text-2xl font-bold text-gray-800 block" onChange={v => handleStepUpdate('title', v)} />
+                                                    </div>
+                                                    {isEditMode && (
+                                                        <div className="flex items-center gap-2">
+                                                            <select
+                                                                className="text-xs border rounded p-1"
+                                                                value={activeStepData.role}
+                                                                onChange={e => handleStepUpdate('role', e.target.value)}
+                                                            >
+                                                                <option>弊社</option>
+                                                                <option>お客様</option>
+                                                            </select>
+                                                            <button
+                                                                onClick={() => setLocalIconSelector({ isOpen: true, onSelect: (icon) => { handleStepUpdate('icon', icon); setLocalIconSelector({ isOpen: false, onSelect: null }); } })}
+                                                                className="text-[10px] bg-gray-100 px-2 py-1 rounded"
+                                                            >
+                                                                Icon
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-0 border rounded-lg overflow-hidden">
+                                                <div className="bg-white p-4 border-b border-gray-100">
+                                                    <h3 className="text-lg font-bold text-gray-800">課題と解決策</h3>
+                                                </div>
+
+                                                {/* Issue Block */}
+                                                <div className="bg-red-50 p-5 border-b border-white border-opacity-50">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="material-symbols-outlined text-red-500 fill text-[20px]">error</span>
+                                                        <span className="font-bold text-red-700 text-sm">課題</span>
+                                                    </div>
+                                                    <EditableArea
+                                                        value={activeStepData.issue}
+                                                        onChange={v => handleStepUpdate('problem', v)}
+                                                        className="text-sm text-gray-800 leading-7 whitespace-pre-wrap block w-full"
+                                                    />
+                                                </div>
+
+                                                {/* Solution Block */}
+                                                <div className="bg-green-50 p-5">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="material-symbols-outlined text-green-600 fill text-[20px]">check_circle</span>
+                                                        <span className="font-bold text-green-700 text-sm">解決策</span>
+                                                    </div>
+                                                    <EditableArea
+                                                        value={activeStepData.solution}
+                                                        onChange={v => handleStepUpdate('solution', v)}
+                                                        className="text-sm text-gray-800 leading-7 whitespace-pre-wrap block w-full"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Procedures Card */}
+                                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                                            <div className="flex justify-between items-center mb-6">
+                                                <h3 className="text-lg font-bold text-gray-800">手順</h3>
+                                                {isEditMode && (
+                                                    <button onClick={addProcedure} className="text-[10px] font-bold text-primary bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-[12px]">add</span>追加
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {activeStepData.procedures.length === 0 ? (
+                                                <div className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded">手順は未登録です</div>
+                                            ) : (
+                                                <div className="flex flex-col gap-4">
+                                                    {activeStepData.procedures.map((proc, idx) => (
+                                                        <div key={idx} className="flex gap-4 relative group items-start">
+                                                            <div className="shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center mt-1">
+                                                                {idx + 1}
+                                                            </div>
+                                                            <div className="flex-1 pt-1">
+                                                                <EditableArea
+                                                                    value={proc}
+                                                                    onChange={v => updateProcedure(idx, v)}
+                                                                    className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-medium"
+                                                                />
+                                                            </div>
+                                                            {isEditMode && (
+                                                                <button onClick={() => deleteProcedure(idx)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <span className="material-symbols-outlined text-[16px]">close</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Local Icon Selector */}
+                        {localIconSelector.isOpen && (
+                            <IconSelector
+                                selected={''}
+                                onSelect={localIconSelector.onSelect}
+                                onClose={() => setLocalIconSelector({ isOpen: false, onSelect: null })}
+                            />
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        // --- Screen 3: Results Page ---
+        const ResultsPage = () => {
+            const { filteredCases, masters, filters, isEditMode, addCase, deleteCase } = useApp();
+            const navigate = useNavigate();
+
+            // 現在の検索条件を取得
+            const getActiveConditions = () => {
+                const conditions = [];
+                filters.selectedIssues.forEach(id => {
+                    const item = (masters.issues || []).find(i => i.id === id);
+                    if (item) conditions.push(item.label);
+                });
+                filters.selectedOutcomes.forEach(id => {
+                    const item = (masters.outcomes || []).find(o => o.id === id);
+                    if (item) conditions.push(item.label);
+                });
+                if (filters.industry !== 'すべて') conditions.push(filters.industry);
+                if (filters.task !== 'すべて') conditions.push(filters.task);
+                if (filters.tool !== 'すべて') conditions.push(filters.tool);
+                return conditions;
+            };
+            const activeConditions = getActiveConditions();
+
+            const handleCreate = () => {
+                const newId = String(filteredCases.length + 1).padStart(3, '0');
+                const newCase = {
+                    ...INITIAL_CASES[0],
+                    id: newId,
+                    title: "新規事例",
+                    industry: "未設定",
+                    metricsCards: [],
+                    issueIds: [],
+                    outcomeIds: [],
+                    phase: "未上場",
+                    commTool: "Slack",
+                    taskWorkflowMap: {}
+                };
+                addCase(newCase);
+            };
+
+            return (
+                <div className="min-h-screen bg-[#F3F5F8] flex flex-col font-body pb-10">
+                    <Header />
+
+                    <main className="max-w-[1000px] mx-auto w-full px-4 py-8 flex flex-col gap-6">
+                        {/* Title & Header */}
+                        <div className="flex flex-col gap-4">
+                            <h2 className="text-2xl font-bold text-gray-800">事例検索結果リスト</h2>
+                            <div className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-sm text-gray-500 font-bold">該当件数</span>
+                                        <span className="text-xl font-black text-gray-900">{filteredCases.length}</span>
+                                        <span className="text-xs text-gray-500 font-bold">件</span>
+                                    </div>
+                                    <div className="h-6 w-[1px] bg-gray-200"></div>
+                                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                                        <span className="text-gray-500">現在の検索条件:</span>
+                                        {activeConditions.length === 0 ? (
+                                            <span className="text-gray-400">条件なし</span>
+                                        ) : (
+                                            activeConditions.map((cond, i) => (
+                                                <span key={i} className="font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded">{cond}</span>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    {isEditMode && (
+                                        <button onClick={handleCreate} className="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 hover:bg-green-700">
+                                            <span className="material-symbols-outlined text-[16px]">add</span> 新規追加
+                                        </button>
+                                    )}
+                                    <button className="flex items-center gap-1 text-primary text-xs font-bold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded transition-colors border border-blue-100">
+                                        <span className="material-symbols-outlined text-[16px]">tune</span> 条件を変更する
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* List */}
+                        <div className="flex flex-col gap-3">
+                            {filteredCases.map(c => (
+                                <article key={c.id} className="relative bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 p-5 transition-all">
+                                    {isEditMode && (
+                                        <button onClick={(e) => { e.preventDefault(); if (confirm('削除しますか？')) deleteCase(c.id); }}
+                                            className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 z-10 transition-colors">
+                                            <span className="material-symbols-outlined">delete</span>
+                                        </button>
+                                    )}
+
+                                    <div className="flex flex-col lg:flex-row gap-6">
+                                        {/* Col 1: Basic Info */}
+                                        <div className="lg:w-[28%] flex flex-col gap-1 lg:border-r border-gray-100 lg:pr-4">
+                                            <p className="text-[10px] font-mono text-gray-400 font-bold tracking-wider">UseID: {c.id}</p>
+                                            <h3 className="text-lg font-bold text-gray-800 leading-tight mb-1">{c.title}</h3>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                <span className="text-[10px] text-gray-600 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded whitespace-nowrap">{c.employeeCount}</span>
+                                                {c.tools.map((t, i) => <span key={i} className="text-[10px] text-gray-600 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded whitespace-nowrap">{t}</span>)}
+                                                <span className="text-[10px] text-gray-600 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded whitespace-nowrap">{c.service}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Col 2: Task & Issues */}
+                                        <div className="lg:w-[42%] flex flex-col gap-3 justify-center">
+                                            <div className="flex items-start gap-2">
+                                                <span className="text-[10px] text-gray-400 font-bold w-12 pt-1 flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">task</span>依頼タスク</span>
+                                                <div className="flex flex-wrap gap-1.5 flex-1">
+                                                    {c.tasks.map((t, i) => (
+                                                        <span key={i} className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded">{t}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-2">
+                                                <span className="text-[10px] text-gray-400 font-bold w-12 pt-1 flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">error</span>課題</span>
+                                                <div className="flex flex-wrap gap-1.5 flex-1">
+                                                    {/* 課題タグをマスタから取得して表示 */}
+                                                    {(c.issueIds || []).map((issueId, i) => {
+                                                        const issue = (masters.issues || []).find(iss => iss.id === issueId);
+                                                        if (!issue) return null;
+                                                        const colorMap = { blue: 'bg-blue-50 text-blue-700 border-blue-100', red: 'bg-red-50 text-red-700 border-red-100', purple: 'bg-purple-50 text-purple-700 border-purple-100', yellow: 'bg-yellow-50 text-yellow-700 border-yellow-100', teal: 'bg-teal-50 text-teal-700 border-teal-100' };
+                                                        const bg = colorMap[issue.color] || colorMap.blue;
+                                                        return (
+                                                            <span key={i} className={`text-[10px] font-bold border px-2 py-0.5 rounded-full flex items-center gap-1 ${bg}`}>
+                                                                <span className="material-symbols-outlined text-[12px]">{issue.icon}</span>
+                                                                {issue.label}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Col 3: Results & Action */}
+                                        <div className="lg:w-[30%] flex flex-col justify-between items-end border-l border-gray-100 pl-4 gap-2">
+                                            <div className="w-full">
+                                                <p className="text-[10px] text-accent font-bold mb-1 flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">check_circle</span>成果・インパクト</p>
+                                                <div className="flex flex-col gap-1.5 items-start">
+                                                    {/* 成果タグをマスタから取得して表示 */}
+                                                    {(c.outcomeIds || []).map((outcomeId, i) => {
+                                                        const outcome = (masters.outcomes || []).find(o => o.id === outcomeId);
+                                                        if (!outcome) return null;
+                                                        return (
+                                                            <span key={i} className="text-[11px] font-bold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full flex items-center gap-1 w-full">
+                                                                <span className="material-symbols-outlined text-[12px]">{outcome.icon}</span> {outcome.label}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                            <Link to={`/detail/${c.id}`} className="bg-primary hover:bg-primary-dark text-white text-xs font-bold py-2.5 px-6 rounded shadow-md hover:shadow-lg transition-all flex items-center gap-1 w-full justify-center">
+                                                詳細を見る <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+
+                        {/* Pagination (Static) */}
+                        <div className="flex justify-center mt-4">
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex items-center p-1 gap-1">
+                                <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:bg-gray-50 rounded"><span className="material-symbols-outlined text-[18px]">chevron_left</span></button>
+                                <button className="w-8 h-8 flex items-center justify-center bg-primary text-white font-bold rounded">1</button>
+                                <button className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 rounded font-bold text-sm">2</button>
+                                <button className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 rounded font-bold text-sm">3</button>
+                                <span className="w-8 h-8 flex items-center justify-center text-gray-400 text-xs">...</span>
+                                <button className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 rounded font-bold text-sm">8</button>
+                                <button className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 rounded"><span className="material-symbols-outlined text-[18px]">chevron_right</span></button>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+
+
+        const App = () => {
+            return (
+                <HashRouter>
+                    <ToastProvider>
+                        <AppProvider>
+                            <AdminBar />
+                            <Routes>
+                                <Route path="/" element={<HomePage />} />
+                                <Route path="/results" element={<ResultsPage />} />
+                                <Route path="/detail/:caseId" element={<CaseDetailPage />} />
+                                <Route path="/workflow/:workflowId" element={<WorkflowPage />} />
+                                <Route path="/detail" element={<Navigate to="/results" replace />} />
+                                <Route path="/workflow" element={<Navigate to="/workflow/wf-001" replace />} />
+                            </Routes>
+                        </AppProvider>
+                    </ToastProvider>
+                </HashRouter>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
